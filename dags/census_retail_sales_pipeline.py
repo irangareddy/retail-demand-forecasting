@@ -7,7 +7,7 @@ import logging
 
 from retail_data_sources.census.retail_sales_processor import RetailSalesProcessor
 
-# v1.0.8
+# v1.0.10
 
 def return_snowflake_conn():
     """Return Snowflake connection cursor using hook."""
@@ -159,14 +159,18 @@ with DAG(
 ) as dag:
 
     target_table = "RETAIL_DATA_WAREHOUSE.RAW_DATA.RETAIL_SALES"
-    current_year = str(datetime.now().year)
+    # from 2019 to the current year
+    start_year = 2019
+    current_year = datetime.now().year
+    years_to_fetch = [str(year) for year in range(start_year, current_year + 1)]
+
 
     # Initialize connections using hooks
     census_conn = return_census_conn()
     snowflake_conn = return_snowflake_conn()
 
     # Define tasks with connections
-    fetch_task = fetch_census(census_conn, current_year)
+    fetch_task = fetch_census(census_conn, years_to_fetch)
     transform_task = transform_census(fetch_task)
     load_task = load_census(snowflake_conn, transform_task, target_table)
 
