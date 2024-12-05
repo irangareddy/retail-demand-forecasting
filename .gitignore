@@ -70,3 +70,6 @@ config/local.py
 dags/__pycache__/
 plugins/__pycache__/
 .pytest_cache/
+
+# extra
+*.pdf

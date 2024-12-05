@@ -21,7 +21,7 @@ RUN python -m pip install --no-cache-dir \
     dbt-snowflake==1.7.1 \
     apache-airflow-providers-snowflake \
     snowflake-connector-python \
-    retail-data-sources==1.0.9
+    retail-data-sources==1.0.11
 
 # Verify installation of packages
 RUN python -m pip list
