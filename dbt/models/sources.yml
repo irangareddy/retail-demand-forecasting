@@ -1,44 +1,197 @@
 version: 2
 
 sources:
-  - name: raw
-    database: dev
-    schema: raw_data
-    description: "Raw stock market data from Alpha Vantage API"
+  - name: raw_data
+    database: RETAIL_DATA_WAREHOUSE
+    schema: RAW_DATA
     tables:
-      - name: alphavantage_stockprice
-        identifier: alphavantage_stockprice
-        description: "Raw daily stock price data"
+      - name: retail_sales
+        description: "Raw retail sales data from Census Bureau"
         columns:
-          - name: symbol
-            description: "Stock ticker symbol"
+          - name: month
+            description: "Month of data (YYYY-MM)"
             tests:
               - not_null
-          - name: date
-            description: "Trading date"
+          - name: state
+            description: "Two-letter state code"
             tests:
               - not_null
-          - name: open
-            description: "Opening price"
-          - name: high
-            description: "Highest price during the day"
-          - name: low
-            description: "Lowest price during the day"
-          - name: close
-            description: "Closing price"
-            tests:
-              - not_null
-          - name: volume
-            description: "Trading volume"
-        tests:
-          - not_null:
-              column_name: [symbol, date, close]
+          - name: category_445_sales
+            description: "Sales for NAICS 445"
+          - name: category_445_share
+            description: "State's share of national sales for category 445"
+          - name: category_448_sales
+            description: "Sales for NAICS 448"
+          - name: category_448_share
+            description: "State's share of national sales for category 448"
+          - name: national_445_total
+            description: "National total sales for Food and Beverage Stores"
+          - name: national_448_total
+            description: "National total sales for Clothing Stores"
+          - name: last_updated
+            description: "Last update timestamp"
+          - name: loaded_at
+            description: "Data load timestamp"
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 48, period: hour}
 
-  - name: marts
-    database: dev
-    schema: marts
-    description: "Transformed and analyzed stock market data"
-    tables:
-      - name: stock_analytics
-        identifier: stock_analytics
-        description: "Final analyzed stock data with technical indicators"
+      - name: fred_economic_data
+        description: "Raw economic indicators from FRED"
+        columns:
+          - name: month
+            description: "Month in YYYY-MM format"
+            tests:
+              - not_null
+          - name: consumer_confidence
+            description: "Consumer confidence index"
+            tests:
+              - not_null
+          - name: unemployment_rate
+            description: "Unemployment rate"
+            tests:
+              - not_null
+          - name: inflation_rate
+            description: "Consumer Price Index changes"
+          - name: gdp_growth_rate
+            description: "Real GDP Growth Rate"
+          - name: federal_funds_rate
+            description: "Federal Funds Effective Rate"
+          - name: retail_sales
+            description: "Retail Sales Growth Rate"
+          - name: last_updated
+            description: "Last update timestamp"
+          - name: loaded_at
+            description: "Data load timestamp"
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 48, period: hour}
+
+      - name: weather_stats
+        description: "Raw weather statistics"
+        columns:
+          - name: state
+            description: "Two-letter state code"
+            tests:
+              - not_null
+          - name: month
+            description: "Month in MM format"
+            tests:
+              - not_null
+          - name: mean_temp
+            description: "Average temperature"
+            tests:
+              - not_null
+          - name: mean_pressure
+            description: "Average atmospheric pressure"
+          - name: mean_humidity
+            description: "Average relative humidity percentage"
+          - name: mean_wind
+            description: "Average wind speed"
+          - name: mean_precipitation
+            description: "Average precipitation amount"
+          - name: mean_clouds
+            description: "Average cloud coverage percentage"
+          - name: sunshine_hours_total
+            description: "Total hours of sunshine"
+          - name: loaded_at
+            description: "Data load timestamp"
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 12, period: hour}
+          error_after: {count: 24, period: hour}
+
+      - name: forecast_performance_log
+        description: "Logging table for forecast performance metrics"
+        columns:
+          - name: month
+            description: "Month of forecast"
+            tests:
+              - not_null
+          - name: state
+            description: "State code"
+            tests:
+              - not_null
+          - name: forecast_445_sales
+            description: "Forecasted sales for category 445"
+            tests:
+              - not_null
+          - name: actual_445_sales
+            description: "Actual sales for category 445"
+            tests:
+              - not_null
+          - name: forecast_448_sales
+            description: "Forecasted sales for category 448"
+            tests:
+              - not_null
+              - positive_values
+          - name: actual_448_sales
+            description: "Actual sales for category 448"
+            tests:
+              - not_null
+              - positive_values
+          - name: data_ingestion_time
+            description: "Time when data was ingested"
+          - name: data_available_time
+            description: "Time when data became available"
+          - name: pipeline_start_time
+            description: "Pipeline execution start time"
+          - name: pipeline_end_time
+            description: "Pipeline execution end time"
+          - name: system_status
+            description: "System availability status"
+            tests:
+              - accepted_values:
+                  values: ['available', 'unavailable', 'degraded']
+          - name: _timestamp
+            description: "Record timestamp"
+        loaded_at_field: _timestamp
+        freshness:
+          warn_after: {count: 1, period: hour}
+          error_after: {count: 2, period: hour}
+
+      - name: business_performance
+        description: "Business performance metrics"
+        columns:
+          - name: month
+            description: "Month of data"
+            tests:
+              - not_null
+          - name: state
+            description: "State code"
+            tests:
+              - not_null
+          - name: category_code
+            description: "Retail category code (445 or 448)"
+          - name: inventory_value
+            description: "Value of inventory"
+          - name: storage_cost
+            description: "Cost of storage"
+          - name: insurance_cost
+            description: "Cost of insurance"
+          - name: obsolescence_cost
+            description: "Cost of obsolescence"
+          - name: total_carrying_cost
+            description: "Total inventory carrying cost"
+          - name: stockout_events
+            description: "Number of stockout events"
+          - name: total_demand
+            description: "Total demand"
+          - name: lost_sales_value
+            description: "Value of lost sales"
+          - name: labor_hours_planned
+            description: "Planned labor hours"
+          - name: labor_hours_actual
+            description: "Actual labor hours"
+          - name: decision_request_time
+            description: "Time of decision request"
+          - name: decision_made_time
+            description: "Time decision was made"
+          - name: loaded_at
+            description: "Data load timestamp"
+        loaded_at_field: loaded_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 48, period: hour}

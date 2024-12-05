@@ -1,0 +1,42 @@
+.
+├── README.md
+├── analyses
+├── dbt_project.yml
+├── demand_forecasting_dbt_setup
+├── demand_forecasting_dbt_setup.txt
+├── logs
+│   └── dbt.log
+├── macros
+├── models
+│   ├── intermediate
+│   │   ├── int_economic_trends.sql
+│   │   ├── int_inventory_metrics.sql
+│   │   └── int_retail_metrics.sql
+│   ├── marts
+│   │   ├── mart_inventory_planning.sql
+│   │   └── mart_retail_analysis.sql
+│   ├── metrics
+│   │   ├── business_metrics.sql
+│   │   └── technical_metrics.sql
+│   ├── ml
+│   │   └── feature_engineering.sql
+│   ├── schema.yml
+│   ├── sources.yml
+│   └── staging
+│       ├── stg_business_performance.sql
+│       ├── stg_census_retail_sales.sql
+│       ├── stg_forecast_performance.sql
+│       ├── stg_fred_economic.sql
+│       └── stg_weather_stats.sql
+├── package-lock.yml
+├── packages.yml
+├── profiles.yml
+├── seeds
+├── snapshots
+│   ├── economic_data_snapshot.sql
+│   ├── retail_metrics_snapshot.sql
+│   ├── retail_sales_snapshot.sql
+│   └── weather_stats_snapshot.sql
+└── tests
+
+13 directories, 27 files

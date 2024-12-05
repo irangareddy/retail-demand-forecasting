@@ -1,4 +1,4 @@
-stock_analytics:
+retail_demand_forecasting:
   outputs:
     dev:
       account: "{{ env_var('DBT_ACCOUNT') }}"
