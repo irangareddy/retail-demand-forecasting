@@ -1,0 +1,158 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    # DBT Environment Variables
+    DBT_ACCOUNT: ${DBT_ACCOUNT}
+    DBT_USER: ${DBT_USER}
+    DBT_PASSWORD: ${DBT_PASSWORD}
+    DBT_DATABASE: ${DBT_DATABASE}
+    DBT_WAREHOUSE: ${DBT_WAREHOUSE}
+    DBT_SCHEMA: ${DBT_SCHEMA}
+    DBT_ROLE: ${DBT_ROLE}
+    DBT_TYPE: ${DBT_TYPE}
+    # Set DBT profiles directory
+    DBT_PROFILES_DIR: /home/airflow/.dbt
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./config:/opt/airflow/config
+    - ./config/airflow.cfg:/opt/airflow/airflow.cfg
+    - ./plugins:/opt/airflow/plugins
+    - ./dbt:/opt/airflow/dbt
+    - ./dbt/profiles.yml:/home/airflow/.dbt/profiles.yml
+  networks:
+    - data_network
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    networks:
+      - data_network
+    restart: always
+
+  airflow:
+    <<: *airflow-common
+    command: >
+      bash -c "airflow scheduler & airflow webserver"
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /home/airflow/.dbt
+        chown -R "${AIRFLOW_UID}:0" /home/airflow/.dbt
+        
+        if [[ -z "${AIRFLOW_UID}" ]]; then
+          echo
+          echo -e "\033[1;33mWARNING!!!: AIRFLOW_UID not set!\e[0m"
+          echo "If you are on Linux, you SHOULD follow the instructions below to set "
+          echo "AIRFLOW_UID environment variable, otherwise files will be owned by root."
+          echo "For other operating systems you can get rid of the warning with manually created .env file:"
+          echo "    See: https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#setting-the-right-airflow-user"
+          echo
+        fi
+        
+        mkdir -p /sources/logs /sources/dags /sources/plugins /sources/dbt
+        chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins,dbt}
+        exec /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+    user: "0:0"
+    volumes:
+      - .:/sources
+
+  superset:
+    image: apache/superset:latest
+    container_name: superset
+    environment:
+      SUPERSET_SECRET_KEY: 'a_random_secret_key'
+      SQLALCHEMY_DATABASE_URI: 'postgresql+psycopg2://superset:superset@superset_db:5432/superset'
+      PYTHONPATH: '/app/pythonpath:/app/pythonpath_extra'
+    ports:
+      - "8088:8088"
+    networks:
+      - data_network
+    volumes:
+      - ./superset_home:/app/superset_home
+      - ./requirements-local.txt:/app/pythonpath/requirements-local.txt
+    depends_on:
+      superset_db:
+        condition: service_healthy
+    command: >
+      bash -c "pip install -r /app/pythonpath/requirements-local.txt &&
+               superset db upgrade &&
+               superset init &&
+               /usr/bin/run-server.sh"
+    restart: always
+
+  superset_db:
+    image: postgres:13
+    container_name: superset_db
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+    volumes:
+      - superset-postgres-db-volume:/var/lib/postgresql/data
+    networks:
+      - data_network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+networks:
+  data_network:
+    driver: bridge
+
+volumes:
+  postgres-db-volume:
+  superset-postgres-db-volume:
