@@ -125,11 +125,12 @@ services:
       superset_db:
         condition: service_healthy
     command: >
-      bash -c "pip install -r /app/pythonpath/requirements-local.txt &&
+      bash -c "pip install --no-cache-dir -r /app/pythonpath/requirements-local.txt &&
                superset db upgrade &&
                superset init &&
                /usr/bin/run-server.sh"
     restart: always
+    user: "0:0"
 
   superset_db:
     image: postgres:13
@@ -148,6 +149,7 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    user: "0:0"
 
 networks:
   data_network:

@@ -1,4 +1,2 @@
 snowflake-sqlalchemy
 snowflake-connector-python
-retail-data-sources
-shutil
