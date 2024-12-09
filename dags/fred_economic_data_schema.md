@@ -16,7 +16,7 @@ Stores monthly economic indicators from FRED that are relevant for retail analys
 
 | Column Name | Data Type | Description | Constraints | Source Series |
 |------------|-----------|-------------|-------------|---------------|
-| month | VARCHAR(10) | Month in YYYY-MM format | PRIMARY KEY, NOT NULL | - |
+| month | DATE | Month in YYYY-MM-DD format | PRIMARY KEY, NOT NULL | - |
 | consumer_confidence | FLOAT | University of Michigan Consumer Sentiment Index | NULL allowed | UMCSENT |
 | unemployment_rate | FLOAT | Unemployment Rate as percentage | NULL allowed | UNRATE |
 | inflation_rate | FLOAT | Consumer Price Index for All Urban Consumers | NULL allowed | CPIAUCSL |

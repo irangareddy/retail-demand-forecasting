@@ -148,8 +148,8 @@ with DAG(
         'retry_delay': timedelta(minutes=5),
     },
     description='A DAG to fetch weather data and load it into Snowflake',
-    start_date=datetime(2024, 1, 1),
-    schedule_interval='0 6 * * *',  # Run daily at 6 AM UTC
+    start_date=datetime(2024, 12, 1),
+    schedule_interval=None,  # Runs daily at 5 AM
     catchup=False,
     tags=["weather"],
 ) as dag:

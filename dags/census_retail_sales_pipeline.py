@@ -7,7 +7,7 @@ import logging
 
 from retail_data_sources.census.retail_sales_processor import RetailSalesProcessor
 
-# v1.0.10
+# v1.0.15
 
 def return_snowflake_conn():
     """Return Snowflake connection cursor using hook."""
@@ -81,7 +81,7 @@ def load_census(cursor, records: list, target_table: str) -> None:
         # Create table if not exists
         create_table_sql = f"""
         CREATE TABLE IF NOT EXISTS {target_table} (
-            month VARCHAR(10) NOT NULL,
+            month DATE NOT NULL,
             state VARCHAR(2) NOT NULL,
             category_445_sales FLOAT NOT NULL,
             category_445_share FLOAT NOT NULL,
@@ -148,12 +148,12 @@ with DAG(
         'owner': 'airflow',
         'depends_on_past': False,
         'email_on_failure': True,
-        'retries': 3,
+        'retries': 1,
         'retry_delay': timedelta(minutes=5),
     },
     description='A DAG to fetch Census retail sales data and load to Snowflake',
-    start_date=datetime(2024, 1, 1),
-    schedule_interval='0 6 * * *',  # Run daily at 6 AM UTC
+    start_date=datetime(2024, 12, 1),
+    schedule_interval=None,
     catchup=False,
     tags=["census", "retail_sales"],
 ) as dag:
@@ -168,9 +168,10 @@ with DAG(
     # Initialize connections using hooks
     census_conn = return_census_conn()
     snowflake_conn = return_snowflake_conn()
+    
 
     # Define tasks with connections
-    fetch_task = fetch_census(census_conn, years_to_fetch)
+    fetch_task = fetch_census(census_conn, ['2024'])
     transform_task = transform_census(fetch_task)
     load_task = load_census(snowflake_conn, transform_task, target_table)
 

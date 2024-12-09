@@ -7,7 +7,7 @@ CREATE SCHEMA IF NOT EXISTS RETAIL_DATA_WAREHOUSE.RAW_DATA;
 
 -- Create Table
 CREATE TABLE IF NOT EXISTS RETAIL_DATA_WAREHOUSE.RAW_DATA.RETAIL_SALES (
-    month VARCHAR(10) NOT NULL,
+    month DATE NOT NULL,
     state VARCHAR(2) NOT NULL,
     category_445_sales FLOAT NOT NULL,
     category_445_share FLOAT NOT NULL,
@@ -27,7 +27,7 @@ This table stores monthly retail sales data from the Census Bureau's API for dif
 
 ### Columns
 
-- `month`: Month of the data (format: YYYY-MM)
+- `month`: Month of the data (format: YYYY-MM-DD)
 - `state`: Two-letter state code (e.g., CA, NY)
 - `category_445_sales`: Sales value for Food and Beverage Stores (NAICS code 445)
 - `category_445_share`: State's share of national sales for Food and Beverage Stores

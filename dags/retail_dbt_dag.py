@@ -12,14 +12,14 @@ def check_dbt_results(context):
         raise Exception('DBT tests failed!')
 
 with DAG(
-    'stock_dbt_pipeline',
+    'retail_dbt_pipeline',
     default_args={
         'owner': 'airflow',
         'retries': 1,
         'retry_delay': timedelta(minutes=5),
     },
-    description='dbt transformations and snapshots for stock data',
-    schedule_interval=None,  # Triggered by stock_data_pipeline
+    description='dbt transformations and snapshots for retail data',
+    schedule_interval=None,
     start_date=datetime(2024, 1, 1),
     catchup=False
 ) as dag:

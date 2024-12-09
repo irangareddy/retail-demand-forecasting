@@ -1,6 +1,6 @@
 """Airflow DAG for fetching FRED economic data and loading to Snowflake."""
 
-# version 1.0.17
+# version 1.1.1
 
 from pathlib import Path
 from airflow import DAG
@@ -69,11 +69,11 @@ def transform_and_load(data: Dict[str, Dict[str, Any]], target_table: str) -> No
         cursor = conn.cursor()
         
         cursor.execute("BEGIN")
-
+        logging.info("Creating Snowflake table if not exists...")
         # Create table if not exists
         create_table_sql = f"""
         CREATE TABLE IF NOT EXISTS {target_table} (
-            month VARCHAR(10) NOT NULL,
+            month DATE NOT NULL,
             consumer_confidence FLOAT,
             unemployment_rate FLOAT,
             inflation_rate FLOAT,
@@ -86,6 +86,7 @@ def transform_and_load(data: Dict[str, Dict[str, Any]], target_table: str) -> No
         );
         """
         cursor.execute(create_table_sql)
+        logging.info("Done Snowflake table if not exists...")
 
         # Process each month's data
         for month, values in data.items():
@@ -171,12 +172,12 @@ with DAG(
         'owner': 'airflow',
         'depends_on_past': False,
         'email_on_failure': True,
-        'retries': 3,
+        'retries': 1,
         'retry_delay': timedelta(minutes=5),
     },
     description='Pipeline to fetch FRED economic data and load to Snowflake',
-    start_date=datetime(2024, 1, 1),
-    schedule_interval='0 6 * * *',  # Run daily at 6 AM UTC
+    start_date=datetime(2024, 12, 1),
+    schedule_interval=None,
     catchup=False,
     tags=["fred", "economic_data"],
 ) as dag:
