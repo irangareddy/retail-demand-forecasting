@@ -85,12 +85,6 @@ models:
  - name: mart_retail_analysis
    description: "Final mart combining retail metrics with economic and weather data"
    columns:
-     - name: retail_month
-       description: "Month in YYYY-MM format"
-       tests:
-         - not_null
-     - name: retail_month_str
-       description: "Month string from date"
      - name: weather_month
        description: "Weather stats month number"
      - name: state
