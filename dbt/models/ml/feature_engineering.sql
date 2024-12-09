@@ -1,32 +1,30 @@
+-- feature_engineering.sql
 WITH sales_features AS (
     SELECT 
         s.month as month_key,
         s.state,
         s.category_445_sales,
         s.category_448_sales,
-        -- Lag features
-        LAG(s.category_445_sales, 1) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD')) AS prev_month_445,
-        LAG(s.category_445_sales, 2) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD')) AS prev_2month_445,
-        LAG(s.category_445_sales, 12) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD')) AS prev_year_445,
-        LAG(s.category_448_sales, 1) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD')) AS prev_month_448,
-        LAG(s.category_448_sales, 2) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD')) AS prev_2month_448,
-        LAG(s.category_448_sales, 12) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD')) AS prev_year_448,
-        -- Moving averages
+        LAG(s.category_445_sales, 1) OVER(PARTITION BY s.state ORDER BY s.month) AS prev_month_445,
+        LAG(s.category_445_sales, 2) OVER(PARTITION BY s.state ORDER BY s.month) AS prev_2month_445,
+        LAG(s.category_445_sales, 12) OVER(PARTITION BY s.state ORDER BY s.month) AS prev_year_445,
+        LAG(s.category_448_sales, 1) OVER(PARTITION BY s.state ORDER BY s.month) AS prev_month_448,
+        LAG(s.category_448_sales, 2) OVER(PARTITION BY s.state ORDER BY s.month) AS prev_2month_448,
+        LAG(s.category_448_sales, 12) OVER(PARTITION BY s.state ORDER BY s.month) AS prev_year_448,
         AVG(s.category_445_sales) OVER(
             PARTITION BY s.state 
-            ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD') 
+            ORDER BY s.month 
             ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING
         ) AS moving_avg_3m_445,
         AVG(s.category_448_sales) OVER(
             PARTITION BY s.state 
-            ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD') 
+            ORDER BY s.month 
             ROWS BETWEEN 3 PRECEDING AND 1 PRECEDING
         ) AS moving_avg_3m_448,
-        -- Growth rates
-        (s.category_445_sales - LAG(s.category_445_sales, 1) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD'))) / 
-            NULLIF(LAG(s.category_445_sales, 1) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD')), 0) AS mom_growth_445,
-        (s.category_448_sales - LAG(s.category_448_sales, 1) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD'))) / 
-            NULLIF(LAG(s.category_448_sales, 1) OVER(PARTITION BY s.state ORDER BY TO_DATE(s.month || '-01', 'YYYY-MM-DD')), 0) AS mom_growth_448
+        (s.category_445_sales - LAG(s.category_445_sales, 1) OVER(PARTITION BY s.state ORDER BY s.month)) / 
+            NULLIF(LAG(s.category_445_sales, 1) OVER(PARTITION BY s.state ORDER BY s.month), 0) AS mom_growth_445,
+        (s.category_448_sales - LAG(s.category_448_sales, 1) OVER(PARTITION BY s.state ORDER BY s.month)) / 
+            NULLIF(LAG(s.category_448_sales, 1) OVER(PARTITION BY s.state ORDER BY s.month), 0) AS mom_growth_448
     FROM {{ ref('stg_census_retail_sales') }} s
 ),
 
@@ -43,38 +41,42 @@ economic_features AS (
 
 weather_features AS (
     SELECT
-        month as month_key,
-        state,
-        mean_temp,
-        mean_precipitation,
-        CASE WHEN mean_temp < 0 THEN 1 ELSE 0 END as is_freezing,
-        CASE WHEN mean_temp BETWEEN 0 AND 15 THEN 1 ELSE 0 END as is_cold,
-        CASE WHEN mean_temp BETWEEN 15 AND 25 THEN 1 ELSE 0 END as is_mild,
-        CASE WHEN mean_temp > 25 THEN 1 ELSE 0 END as is_hot,
-        CASE WHEN mean_precipitation = 0 THEN 1 ELSE 0 END as is_dry,
-        CASE WHEN mean_precipitation > 50 THEN 1 ELSE 0 END as is_heavy_rain
-    FROM {{ ref('stg_weather_stats') }}
+        DATE_TRUNC('month', TO_DATE(CONCAT(
+            EXTRACT(YEAR FROM CAST(e.month AS DATE))::STRING, '-',
+            LPAD(w.month::STRING, 2, '0'), '-01'
+        ))) as month_key,
+        w.state,
+        w.mean_temp,
+        w.mean_precipitation,
+        CASE WHEN w.mean_temp < 0 THEN 1 ELSE 0 END as is_freezing,
+        CASE WHEN w.mean_temp BETWEEN 0 AND 15 THEN 1 ELSE 0 END as is_cold,
+        CASE WHEN w.mean_temp BETWEEN 15 AND 25 THEN 1 ELSE 0 END as is_mild,
+        CASE WHEN w.mean_temp > 25 THEN 1 ELSE 0 END as is_hot,
+        CASE WHEN w.mean_precipitation = 0 THEN 1 ELSE 0 END as is_dry,
+        CASE WHEN w.mean_precipitation > 50 THEN 1 ELSE 0 END as is_heavy_rain
+    FROM {{ ref('stg_weather_stats') }} w
+    CROSS JOIN (SELECT DISTINCT month FROM {{ ref('stg_fred_economic') }}) e
 ),
 
 temporal_features AS (
     SELECT
         month as month_key,
-        EXTRACT(MONTH FROM TO_DATE(month || '-01', 'YYYY-MM-DD')) as month_number,
-        EXTRACT(YEAR FROM TO_DATE(month || '-01', 'YYYY-MM-DD')) as year,
+        EXTRACT(MONTH FROM CAST(month AS DATE)) as month_number,
+        EXTRACT(YEAR FROM CAST(month AS DATE)) as year,
         CASE 
-            WHEN EXTRACT(MONTH FROM TO_DATE(month || '-01', 'YYYY-MM-DD')) IN (12,1,2) THEN 1 
+            WHEN EXTRACT(MONTH FROM CAST(month AS DATE)) IN (12,1,2) THEN 1 
             ELSE 0 
         END as is_winter,
         CASE 
-            WHEN EXTRACT(MONTH FROM TO_DATE(month || '-01', 'YYYY-MM-DD')) IN (6,7,8) THEN 1 
+            WHEN EXTRACT(MONTH FROM CAST(month AS DATE)) IN (6,7,8) THEN 1 
             ELSE 0 
         END as is_summer,
         CASE 
-            WHEN EXTRACT(MONTH FROM TO_DATE(month || '-01', 'YYYY-MM-DD')) IN (11,12) THEN 1 
+            WHEN EXTRACT(MONTH FROM CAST(month AS DATE)) IN (11,12) THEN 1 
             ELSE 0 
         END as is_holiday_season,
-        SIN(2 * 3.14159 * EXTRACT(MONTH FROM TO_DATE(month || '-01', 'YYYY-MM-DD')) / 12) as month_sin,
-        COS(2 * 3.14159 * EXTRACT(MONTH FROM TO_DATE(month || '-01', 'YYYY-MM-DD')) / 12) as month_cos
+        SIN(2 * 3.14159 * EXTRACT(MONTH FROM CAST(month AS DATE)) / 12) as month_sin,
+        COS(2 * 3.14159 * EXTRACT(MONTH FROM CAST(month AS DATE)) / 12) as month_cos
     FROM (SELECT DISTINCT month FROM {{ ref('stg_census_retail_sales') }})
 )
 

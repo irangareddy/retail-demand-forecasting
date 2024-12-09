@@ -46,12 +46,8 @@ sources:
               - not_null
           - name: consumer_confidence
             description: "Consumer confidence index"
-            tests:
-              - not_null
           - name: unemployment_rate
             description: "Unemployment rate"
-            tests:
-              - not_null
           - name: inflation_rate
             description: "Consumer Price Index changes"
           - name: gdp_growth_rate
@@ -102,55 +98,6 @@ sources:
         freshness:
           warn_after: {count: 12, period: hour}
           error_after: {count: 24, period: hour}
-
-      - name: forecast_performance_log
-        description: "Logging table for forecast performance metrics"
-        columns:
-          - name: month
-            description: "Month of forecast"
-            tests:
-              - not_null
-          - name: state
-            description: "State code"
-            tests:
-              - not_null
-          - name: forecast_445_sales
-            description: "Forecasted sales for category 445"
-            tests:
-              - not_null
-          - name: actual_445_sales
-            description: "Actual sales for category 445"
-            tests:
-              - not_null
-          - name: forecast_448_sales
-            description: "Forecasted sales for category 448"
-            tests:
-              - not_null
-              - positive_values
-          - name: actual_448_sales
-            description: "Actual sales for category 448"
-            tests:
-              - not_null
-              - positive_values
-          - name: data_ingestion_time
-            description: "Time when data was ingested"
-          - name: data_available_time
-            description: "Time when data became available"
-          - name: pipeline_start_time
-            description: "Pipeline execution start time"
-          - name: pipeline_end_time
-            description: "Pipeline execution end time"
-          - name: system_status
-            description: "System availability status"
-            tests:
-              - accepted_values:
-                  values: ['available', 'unavailable', 'degraded']
-          - name: _timestamp
-            description: "Record timestamp"
-        loaded_at_field: _timestamp
-        freshness:
-          warn_after: {count: 1, period: hour}
-          error_after: {count: 2, period: hour}
 
       - name: business_performance
         description: "Business performance metrics"

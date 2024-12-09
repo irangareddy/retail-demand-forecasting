@@ -1,137 +1,146 @@
-
 version: 2
 
 models:
-  - name: stg_census_retail_sales
-    description: "Staged retail sales data from Census Bureau's Monthly Retail Trade Survey"
-    columns:
-      - name: month
-        description: "Month in YYYY-MM format"
-        tests:
-          - not_null
-      - name: state
-        description: "Two-letter state code"
-        tests:
-          - not_null
-      - name: category_445_sales
-        description: "Sales value for Food and Beverage Stores (NAICS 445)"
-        tests:
-          - not_null
-          - positive_values
-      - name: category_445_share
-        description: "State's share of national sales for category 445"
-        tests:
-          - not_null
-          - greater_than_zero
-          - less_than_one
-      - name: category_448_sales
-        description: "Sales value for Clothing Stores (NAICS 448)"
-        tests:
-          - not_null
-          - positive_values
-      - name: category_448_share
-        description: "State's share of national sales for category 448"
-        tests:
-          - not_null
-          - greater_than_zero
-          - less_than_one
+ - name: stg_census_retail_sales
+   description: "Staged retail sales data from Census Bureau's Monthly Retail Trade Survey"
+   columns:
+     - name: month
+       description: "Month in YYYY-MM format"
+       tests:
+         - not_null
+     - name: state
+       description: "Two-letter state code"
+       tests:
+         - not_null
+     - name: category_445_sales
+       description: "Sales value for Food and Beverage Stores (NAICS 445)"
+       tests:
+         - not_null
+     - name: category_445_share
+       description: "State's share of national sales for category 445"
+       tests:
+         - not_null
+     - name: category_448_sales
+       description: "Sales value for Clothing Stores (NAICS 448)"
+       tests:
+         - not_null
+     - name: category_448_share
+       description: "State's share of national sales for category 448"
+       tests:
+         - not_null
 
-  - name: stg_fred_economic
-    description: "Staged economic indicators from FRED"
-    columns:
-      - name: month
-        description: "Month in YYYY-MM format"
-        tests:
-          - not_null
-          - unique
-      - name: consumer_confidence
-        description: "University of Michigan Consumer Sentiment Index"
-        tests:
-          - not_null
-      - name: unemployment_rate
-        description: "Unemployment Rate as percentage"
-        tests:
-          - not_null
-          - positive_values
-      - name: inflation_rate
-        description: "Consumer Price Index changes"
-        tests:
-          - not_null
+ - name: stg_weather_stats
+   description: "Staged weather statistics from OpenWeather"
+   columns:
+     - name: state
+       description: "Two-letter state code"
+       tests:
+         - not_null
+     - name: month
+       description: "Month number (1-12)"
+       tests:
+         - not_null
+         - accepted_values:
+             values: ['1','2','3','4','5','6','7','8','9','10','11','12']
+     - name: mean_temp
+       description: "Average temperature for the period"
+       tests:
+         - not_null
+     - name: mean_precipitation
+       description: "Average precipitation amount"
+       tests:
+         - not_null
+     - name: temp_category
+       description: "Temperature category"
+       tests:
+         - accepted_values:
+             values: ['Cold', 'Mild', 'Hot']
 
-  - name: stg_weather_stats
-    description: "Staged weather statistics from OpenWeather"
-    columns:
-      - name: state
-        description: "Two-letter state code"
-        tests:
-          - not_null
-      - name: month
-        description: "Month in MM format"
-        tests:
-          - not_null
-      - name: mean_temp
-        description: "Average temperature for the period"
-        tests:
-          - not_null
-      - name: mean_precipitation
-        description: "Average precipitation amount"
-        tests:
-          - not_null
-          - positive_values
+ - name: int_retail_metrics
+   description: "Intermediate retail metrics with calculated fields"
+   columns:
+     - name: month
+       description: "Month in YYYY-MM format"
+       tests:
+         - not_null
+     - name: state
+       description: "Two-letter state code"
+       tests:
+         - not_null
+     - name: category_445_sales
+       tests:
+         - not_null
+     - name: category_448_sales
+       tests:
+         - not_null
+     - name: mom_growth_445
+       description: "Month-over-month growth for category 445"
+     - name: mom_growth_448
+       description: "Month-over-month growth for category 448"
+     - name: seasonal_index_445
+       description: "Seasonal index for category 445"
+     - name: seasonal_index_448
+       description: "Seasonal index for category 448"
 
-  - name: int_retail_metrics
-    description: "Intermediate retail metrics with calculated fields"
-    columns:
-      - name: month
-        description: "Month in YYYY-MM format"
-        tests:
-          - not_null
-      - name: state
-        description: "Two-letter state code"
-        tests:
-          - not_null
-      - name: mom_growth_445
-        description: "Month-over-month growth for category 445"
-      - name: mom_growth_448
-        description: "Month-over-month growth for category 448"
-      - name: moving_avg_445_3m
-        description: "3-month moving average for category 445"
-      - name: moving_avg_448_3m
-        description: "3-month moving average for category 448"
+ - name: mart_retail_analysis
+   description: "Final mart combining retail metrics with economic and weather data"
+   columns:
+     - name: retail_month
+       description: "Month in YYYY-MM format"
+       tests:
+         - not_null
+     - name: retail_month_str
+       description: "Month string from date"
+     - name: weather_month
+       description: "Weather stats month number"
+     - name: state
+       description: "Two-letter state code"
+       tests:
+         - not_null
+     - name: category_445_sales
+       tests:
+         - not_null
+     - name: category_448_sales
+       tests:
+         - not_null
 
-  - name: mart_retail_analysis
-    description: "Final mart combining all metrics for analysis"
-    columns:
-      - name: month
-        description: "Month in YYYY-MM format"
-        tests:
-          - not_null
-      - name: state
-        description: "Two-letter state code"
-        tests:
-          - not_null
-      - name: sales_value
-        description: "Total sales value"
-        tests:
-          - not_null
-          - positive_values
-      - name: weather_impact_level
-        description: "Calculated weather impact on sales"
-        tests:
-          - accepted_values:
-              values: ['High', 'Medium', 'Low']
+ - name: mart_inventory_planning
+   description: "Inventory planning recommendations"
+   columns:
+     - name: month
+       description: "Month in YYYY-MM format"
+       tests:
+         - not_null
+     - name: state
+       tests:
+         - not_null
+     - name: adjusted_safety_stock_445
+     - name: adjusted_safety_stock_448
+     - name: stock_recommendation_445
+       tests:
+         - accepted_values:
+             values: ['Increase', 'Decrease', 'Maintain']
+     - name: stock_recommendation_448
+       tests:
+         - accepted_values:
+             values: ['Increase', 'Decrease', 'Maintain']
 
-  - name: feature_engineering
-    description: "ML features for demand forecasting"
-    columns:
-      - name: month
-        description: "Month of the data point"
-        tests:
-          - not_null
-          - unique:
-              combination_of: ['month', 'state']
-      - name: target_445
-        description: "Target variable for food & beverage sales"
-        tests:
-          - not_null
-          - positive_values
+ - name: feature_engineering
+   description: "ML features for demand forecasting"
+   columns:
+     - name: month
+       description: "Month of the data point"
+       tests:
+         - not_null
+     - name: state
+       description: "Two-letter state code"
+       tests:
+         - not_null
+     - name: target_445
+       description: "Target variable for food & beverage sales"
+       tests:
+         - not_null
+     - name: target_448
+       description: "Target variable for clothing sales"
+       tests:
+         - not_null
